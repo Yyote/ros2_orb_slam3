@@ -184,8 +184,28 @@ void MonocularMode::Img_callback(const sensor_msgs::msg::Image& msg)
     Sophus::SE3f Tcw = pAgent->TrackMonocular(cv_ptr->image, timeStep); 
     
     //* An example of what can be done after the pose w.r.t camera coordinate frame is computed by ORB SLAM3
-    //Sophus::SE3f Twc = Tcw.inverse(); //* Pose with respect to global image coordinate, reserved for future use
+    // Sophus::SE3f Twc = Tcw.inverse(); //* Pose with respect to global image coordinate, reserved for future use
+    // // Extract the translation (x, y, z)
+    // Eigen::Vector3f translation = Twc.translation();
+    // float x = translation.x();
+    // float y = translation.y();
+    // float z = translation.z();
 
+    // // Extract the rotation matrix
+    // Eigen::Matrix3f rotationMatrix = Twc.rotationMatrix();
+
+    // // Convert the rotation matrix to Euler angles (roll, pitch, yaw)
+    // Eigen::Vector3f eulerAngles = rotationMatrix.eulerAngles(2, 1, 0); // The order is Z, Y, X for roll, pitch, yaw
+    // float roll = eulerAngles.x();
+    // float pitch = eulerAngles.y();
+    // float yaw = eulerAngles.z();
+
+    // RCLCPP_INFO_STREAM(this->get_logger(), "x: " << x);
+    // RCLCPP_INFO_STREAM(this->get_logger(), "y: " << y);
+    // RCLCPP_INFO_STREAM(this->get_logger(), "z: " << z);
+    // RCLCPP_INFO_STREAM(this->get_logger(), "roll: " << roll);
+    // RCLCPP_INFO_STREAM(this->get_logger(), "pitch: " << pitch);
+    // RCLCPP_INFO_STREAM(this->get_logger(), "yaw: " << yaw);
 }
 
 

@@ -187,6 +187,34 @@ install(TARGETS mono_node_cpp orb_slam3_lib
   INCLUDES DESTINATION include/${PROJECT_NAME}
 )
 
+
+# Add executable
+add_executable(stereo_node_cpp
+  src/rgbd_node.cpp
+  src/rgbd_orb.cpp
+)
+
+ament_target_dependencies(stereo_node_cpp
+  PUBLIC ${THIS_PACKAGE_INCLUDE_DEPENDS}
+)
+
+target_link_libraries(stereo_node_cpp PUBLIC orb_slam3_lib) # Link a node with the internal shared library
+
+
+# Install all the header files in package/package/include
+install (DIRECTORY include/ 
+        DESTINATION include
+)
+
+# Install our node and library
+install(TARGETS stereo_node_cpp orb_slam3_lib
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
+  INCLUDES DESTINATION include/${PROJECT_NAME}
+)
+
+
 # Tell downstream packages where to find the headers
 ament_export_include_directories(include)
 
