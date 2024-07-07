@@ -31,6 +31,14 @@ RGBDMode::RGBDMode() : Node("mono_node_cpp")
     this->declare_parameter("experimentConfig", default_experimentConfig);
     this->get_parameter_or("experimentConfig", experimentConfig, default_experimentConfig);
 
+    std::string default_odom_link = "odom";
+    this->declare_parameter("odom_link", odom_link);
+    this->get_parameter_or("odom_link", odom_link, default_odom_link);
+
+    std::string default_odom_parent_link = "map";
+    this->declare_parameter("odom_parent_link", odom_parent_link);
+    this->get_parameter_or("odom_parent_link", odom_parent_link, default_odom_parent_link);
+
     // this->declare_parameter("node_name_arg", "not_given"); // Name of this agent 
     this->declare_parameter("voc_file_arg", "file_not_set"); // Needs to be overriden with appropriate name  
     this->declare_parameter("settings_file_path_arg", "file_path_not_set"); // path to settings file  
@@ -60,6 +68,7 @@ RGBDMode::RGBDMode() : Node("mono_node_cpp")
     //* subscrbite to the image messages coming from the camera
     subImgMsg_subscription_= this->create_subscription<sensor_msgs::msg::Image>(subImgMsgName, 1, std::bind(&RGBDMode::Img_callback, this, _1));
     subDepthImgMsg_subscription_= this->create_subscription<sensor_msgs::msg::Image>(subDepthImgMsgName, 1, std::bind(&RGBDMode::DepthImg_callback, this, _1));
+    odom_tf_broadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 
     vslam_timer = this->create_wall_timer(std::chrono::milliseconds(25), std::bind(&RGBDMode::vslam_timer_cb, this));
 
@@ -126,6 +135,7 @@ void RGBDMode::Img_callback(const sensor_msgs::msg::Image& msg)
         return;
     }
     old_timestamp = image_timestamp;
+    image_rcl_timestamp = msg.header.stamp;
     image_timestamp = double(msg.header.stamp.sec) + double(msg.header.stamp.nanosec) / 1e9;
     rgb_img_is_fresh = true;
 }
@@ -161,8 +171,12 @@ void RGBDMode::vslam_timer_cb()
 {
     if (rgb_img_is_fresh == true && depth_img_is_fresh == true && old_timestamp != 0)
     {
-        timeStep = image_timestamp - old_timestamp;
-        RCLCPP_WARN_STREAM(this->get_logger(), "WARNING! Timestep calculation may be broken. Check ros time to double conversion. Timestep = " << timeStep);
+        geometry_msgs::msg::TransformStamped odom_transform;
+        odom_transform.child_frame_id = odom_link;
+        odom_transform.header.frame_id = odom_parent_link;
+        odom_transform.header.stamp = image_rcl_timestamp;
+        // timeStep = image_timestamp - old_timestamp;
+        // RCLCPP_WARN_STREAM(this->get_logger(), "WARNING! Timestep calculation may be broken. Check ros time to double conversion. Timestep = " << timeStep);
         Sophus::SE3f Tcw = pAgent->TrackRGBD(rgb_image->image, depth_image->image, image_timestamp); 
         Sophus::SE3f Twc = Tcw.inverse(); //* Pose with respect to global image coordinate, reserved for future use
 
@@ -172,20 +186,51 @@ void RGBDMode::vslam_timer_cb()
         float y = translation.y();
         float z = translation.z();
 
-        // Extract the rotation matrix
-        Eigen::Matrix3f rotationMatrix = Twc.rotationMatrix();
+        // Extract the quaternion directly from the transformation
+        Eigen::Quaternionf q(Twc.rotationMatrix());
 
-        // Convert the rotation matrix to Euler angles (roll, pitch, yaw)
-        Eigen::Vector3f eulerAngles = rotationMatrix.eulerAngles(2, 1, 0); // The order is Z, Y, X for roll, pitch, yaw
-        float roll = eulerAngles.x();
-        float pitch = eulerAngles.y();
-        float yaw = eulerAngles.z();
+        double dpitch = -M_PI_2;
+        double dyaw = M_PI_2;
 
-        RCLCPP_INFO_STREAM(this->get_logger(), "x: " << x);
-        RCLCPP_INFO_STREAM(this->get_logger(), "y: " << y);
-        RCLCPP_INFO_STREAM(this->get_logger(), "z: " << z);
-        RCLCPP_INFO_STREAM(this->get_logger(), "roll: " << roll);
-        RCLCPP_INFO_STREAM(this->get_logger(), "pitch: " << pitch);
-        RCLCPP_INFO_STREAM(this->get_logger(), "yaw: " << yaw);
+        tf2::Quaternion q_camera;
+        q_camera.setW(q.w());
+        q_camera.setX(q.x());
+        q_camera.setY(q.y());
+        q_camera.setZ(q.z());
+
+        double roll_, pitch_, yaw_;
+        tf2::Matrix3x3 m(q_camera);
+        m.getRPY(roll_, pitch_, yaw_);
+
+        double roll, pitch, yaw;
+        roll = yaw_;
+        pitch = -roll_;
+        yaw = -pitch_;
+        // tf2::Quaternion q_correction;
+        q_camera.setRPY(roll, pitch, yaw);
+        q_camera.normalize();
+
+        // q_orig = q_orig * q_correction;
+
+// Y - 90
+// Z 90
+
+        // Access quaternion components:
+        // float w = q.w(); 
+        // float x = q.x();
+        // float y = q.y();
+        // float z = q.z();
+
+        odom_transform.transform.translation.x = z;
+        odom_transform.transform.translation.y = -x;
+        odom_transform.transform.translation.z = -y;
+
+        odom_transform.transform.rotation.w = q_camera.getW();
+        odom_transform.transform.rotation.x = q_camera.getX();
+        odom_transform.transform.rotation.y = q_camera.getY();
+        odom_transform.transform.rotation.z = q_camera.getZ();
+        
+
+        odom_tf_broadcaster->sendTransform(odom_transform);
     }
 }

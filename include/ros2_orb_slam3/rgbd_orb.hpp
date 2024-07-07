@@ -17,6 +17,13 @@
 //* ROS2 includes
 //* std_msgs in ROS 2 https://docs.ros2.org/foxy/api/std_msgs/index-msg.html
 #include "rclcpp/rclcpp.hpp"
+#include "tf2_ros/transform_broadcaster.h"
+#include "geometry_msgs/msg/transform_stamped.hpp"
+
+#include "tf2/LinearMath/Matrix3x3.h"
+#include "tf2/LinearMath/Quaternion.h"
+#include "tf2_geometry_msgs/tf2_geometry_msgs.h"
+#include "geometry_msgs/msg/quaternion.hpp"
 
 // #include "your_custom_msg_interface/msg/custom_msg_field.hpp" // Example of adding in a custom message
 #include <std_msgs/msg/header.hpp>
@@ -68,6 +75,7 @@ class RGBDMode : public rclcpp::Node
 
         cv_bridge::CvImagePtr rgb_image;
         cv_bridge::CvImagePtr depth_image;
+        rclcpp::Time image_rcl_timestamp;
         double image_timestamp = 0;
         double old_timestamp = 0;
         rclcpp::TimerBase::SharedPtr vslam_timer;
@@ -79,6 +87,8 @@ class RGBDMode : public rclcpp::Node
         // std::string nodeName = ""; // Name of this node
         std::string vocFilePath = ""; // Path to ORB vocabulary provided by DBoW2 package
         std::string settingsFilePath = ""; // Path to settings file provided by ORB_SLAM3 package
+        std::string odom_link = "odom"; // Path to settings file provided by ORB_SLAM3 package
+        std::string odom_parent_link = "map"; // Path to settings file provided by ORB_SLAM3 package
         // bool bSettingsFromPython = false; // Flag set once when experiment setting from python node is received
         
         // std::string subexperimentconfigName = ""; // Subscription topic name
@@ -93,6 +103,7 @@ class RGBDMode : public rclcpp::Node
         rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr subImgMsg_subscription_;
         rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr subDepthImgMsg_subscription_;
         rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr subTimestepMsg_subscription_;
+        std::unique_ptr<tf2_ros::TransformBroadcaster> odom_tf_broadcaster;
 
         //* ORB_SLAM3 related variables
         ORB_SLAM3::System* pAgent; // pointer to a ORB SLAM3 object
