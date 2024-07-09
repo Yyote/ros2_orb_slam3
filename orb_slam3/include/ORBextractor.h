@@ -51,9 +51,10 @@ public:
 
     ~ORBextractor(){}
 
-    // Compute the ORB features and descriptors on an image.
-    // ORB are dispersed on the image using an octree.
-    // Mask is ignored in the current implementation.
+    /// Compute the ORB features and descriptors on an image.
+    /// ORB are dispersed on the image using an octree.
+    /// Mask is ignored in the current implementation.
+    /// @warning This operator was rewritten to use OpenCV's ORB feature extractor as it is much more robust
     int operator()( cv::InputArray _image, cv::InputArray _mask,
                     std::vector<cv::KeyPoint>& _keypoints,
                     cv::OutputArray _descriptors, std::vector<int> &vLappingArea);

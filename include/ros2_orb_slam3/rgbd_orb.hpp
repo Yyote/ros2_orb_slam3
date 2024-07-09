@@ -31,6 +31,7 @@
 #include <std_msgs/msg/string.hpp>
 #include <std_msgs/msg/bool.hpp>
 #include "sensor_msgs/msg/image.hpp"
+#include "nav_msgs/msg/odometry.hpp"
 using std::placeholders::_1; //* TODO why this is suggested in official tutorial
 
 // Include Eigen
@@ -72,6 +73,8 @@ class RGBDMode : public rclcpp::Node
     private:
         bool rgb_img_is_fresh = false;
         bool depth_img_is_fresh = false;
+        bool got_odometry_at_least_once = false;
+        nav_msgs::msg::Odometry previous_odometry;
 
         cv_bridge::CvImagePtr rgb_image;
         cv_bridge::CvImagePtr depth_image;
@@ -103,6 +106,7 @@ class RGBDMode : public rclcpp::Node
         rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr subImgMsg_subscription_;
         rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr subDepthImgMsg_subscription_;
         rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr subTimestepMsg_subscription_;
+        rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pubOdometry_;
         std::unique_ptr<tf2_ros::TransformBroadcaster> odom_tf_broadcaster;
 
         //* ORB_SLAM3 related variables

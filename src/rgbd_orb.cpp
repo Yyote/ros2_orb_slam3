@@ -70,6 +70,8 @@ RGBDMode::RGBDMode() : Node("mono_node_cpp")
     subDepthImgMsg_subscription_= this->create_subscription<sensor_msgs::msg::Image>(subDepthImgMsgName, 1, std::bind(&RGBDMode::DepthImg_callback, this, _1));
     odom_tf_broadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 
+    pubOdometry_ = this->create_publisher<nav_msgs::msg::Odometry>("/orb_slam3/odom", 10);
+
     vslam_timer = this->create_wall_timer(std::chrono::milliseconds(25), std::bind(&RGBDMode::vslam_timer_cb, this));
 
     initializeVSLAM(experimentConfig);
@@ -175,8 +177,7 @@ void RGBDMode::vslam_timer_cb()
         odom_transform.child_frame_id = odom_link;
         odom_transform.header.frame_id = odom_parent_link;
         odom_transform.header.stamp = image_rcl_timestamp;
-        // timeStep = image_timestamp - old_timestamp;
-        // RCLCPP_WARN_STREAM(this->get_logger(), "WARNING! Timestep calculation may be broken. Check ros time to double conversion. Timestep = " << timeStep);
+
         Sophus::SE3f Tcw = pAgent->TrackRGBD(rgb_image->image, depth_image->image, image_timestamp); 
         Sophus::SE3f Twc = Tcw.inverse(); //* Pose with respect to global image coordinate, reserved for future use
 
@@ -192,45 +193,119 @@ void RGBDMode::vslam_timer_cb()
         double dpitch = -M_PI_2;
         double dyaw = M_PI_2;
 
-        tf2::Quaternion q_camera;
-        q_camera.setW(q.w());
-        q_camera.setX(q.x());
-        q_camera.setY(q.y());
-        q_camera.setZ(q.z());
+        // tf2::Quaternion q_camera;
+        // q_camera.setW(q.w());
+        // q_camera.setX(q.x());
+        // q_camera.setY(q.y());
+        // q_camera.setZ(q.z());
 
+         // Change axes of rotation
         double roll_, pitch_, yaw_;
-        tf2::Matrix3x3 m(q_camera);
-        m.getRPY(roll_, pitch_, yaw_);
-
         double roll, pitch, yaw;
-        roll = yaw_;
-        pitch = -roll_;
-        yaw = -pitch_;
-        // tf2::Quaternion q_correction;
-        q_camera.setRPY(roll, pitch, yaw);
-        q_camera.normalize();
+        // tf2::Matrix3x3 m(q_camera);
+        // m.getRPY(roll_, pitch_, yaw_);
 
-        // q_orig = q_orig * q_correction;
+        // roll = yaw_;
+        // pitch = -roll_;
+        // yaw = -pitch_;
 
-// Y - 90
-// Z 90
-
-        // Access quaternion components:
-        // float w = q.w(); 
-        // float x = q.x();
-        // float y = q.y();
-        // float z = q.z();
+        // // tf2::Quaternion q_correction;
+        // q_camera.setRPY(roll, pitch, yaw);
+        // q_camera.normalize();
 
         odom_transform.transform.translation.x = z;
         odom_transform.transform.translation.y = -x;
         odom_transform.transform.translation.z = -y;
 
-        odom_transform.transform.rotation.w = q_camera.getW();
-        odom_transform.transform.rotation.x = q_camera.getX();
-        odom_transform.transform.rotation.y = q_camera.getY();
-        odom_transform.transform.rotation.z = q_camera.getZ();
+        // view roll = -yaw_real
+        // view pitch = roll_real
+        // view yaw = -pitch_real
+        // odom_transform.transform.rotation.w = q.w();
+        // odom_transform.transform.rotation.x = q.y();
+        // odom_transform.transform.rotation.y = q.z();
+        // odom_transform.transform.rotation.z = q.x();
+
+        // swap z <-> y // yaw_real + roll_real
+
+        // view roll = roll_real
+        // view pitch = -yaw_real
+        // view yaw = -pitch_real
+        // odom_transform.transform.rotation.w = q.w();
+        // odom_transform.transform.rotation.x = q.z();
+        // odom_transform.transform.rotation.y = q.y();
+        // odom_transform.transform.rotation.z = q.x();
         
+        // swap y <-> x // yaw_real + pitch_real
+
+        // view roll = roll_real
+        // view pitch = -pitch_real
+        // view yaw = -yaw_real
+        odom_transform.transform.rotation.w = q.w();
+        odom_transform.transform.rotation.x = q.z();
+        odom_transform.transform.rotation.y = -q.x();
+        odom_transform.transform.rotation.z = -q.y();
+
+        nav_msgs::msg::Odometry odom;
+        odom.child_frame_id = odom_transform.child_frame_id;
+        
+        odom.header = odom_transform.header;
+        
+        odom.pose.pose.position.x = odom_transform.transform.translation.x;
+        odom.pose.pose.position.y = odom_transform.transform.translation.y;
+        odom.pose.pose.position.z = odom_transform.transform.translation.z;
+
+        odom.pose.pose.orientation.w = odom_transform.transform.rotation.w;
+        odom.pose.pose.orientation.x = odom_transform.transform.rotation.x;
+        odom.pose.pose.orientation.y = odom_transform.transform.rotation.y;
+        odom.pose.pose.orientation.z = odom_transform.transform.rotation.z;
+
+        if (got_odometry_at_least_once == true)
+        {
+            float dt = (float(odom.header.stamp.sec) + float(odom.header.stamp.nanosec) / 1e9) - (float(previous_odometry.header.stamp.sec) + float(previous_odometry.header.stamp.nanosec) / 1e9);
+            RCLCPP_WARN_STREAM(this->get_logger(), "Odometry delta time = " << dt);
+            if (dt == 0)
+            {
+                return;
+            }
+
+            odom.twist.twist.linear.x = (odom.pose.pose.position.x - previous_odometry.pose.pose.position.x) / dt;
+            odom.twist.twist.linear.y = (odom.pose.pose.position.y - previous_odometry.pose.pose.position.y) / dt;
+            odom.twist.twist.linear.z = (odom.pose.pose.position.z - previous_odometry.pose.pose.position.z) / dt;
+
+            tf2::Quaternion prev_orientation;
+            tf2::Quaternion curr_orientation;
+
+            prev_orientation.setX(previous_odometry.pose.pose.orientation.x); 
+            prev_orientation.setW(previous_odometry.pose.pose.orientation.w); 
+            prev_orientation.setY(previous_odometry.pose.pose.orientation.y); 
+            prev_orientation.setZ(previous_odometry.pose.pose.orientation.z); 
+
+            curr_orientation.setX(odom.pose.pose.orientation.x); 
+            curr_orientation.setW(odom.pose.pose.orientation.w); 
+            curr_orientation.setY(odom.pose.pose.orientation.y); 
+            curr_orientation.setZ(odom.pose.pose.orientation.z); 
+
+            tf2::Matrix3x3 m_prev(prev_orientation);
+            tf2::Matrix3x3 m_curr(curr_orientation);
+
+            // Previous RPY are underscored, current are not
+            m_prev.getRPY(roll_, pitch_, yaw_);
+            m_curr.getRPY(roll, pitch, yaw);
+
+            double droll = roll - roll_;
+            double dpitch = pitch - pitch_;
+            double dyaw = yaw - yaw_;
+
+            odom.twist.twist.angular.x = droll / dt;
+            odom.twist.twist.angular.y = dpitch / dt;
+            odom.twist.twist.angular.z = dyaw / dt;
+        }
 
         odom_tf_broadcaster->sendTransform(odom_transform);
+        pubOdometry_->publish(odom);
+
+        // After everything
+        previous_odometry = odom;
+        got_odometry_at_least_once = true;
     }
 }
