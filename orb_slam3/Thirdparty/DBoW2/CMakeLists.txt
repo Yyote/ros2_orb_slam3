@@ -1,4 +1,7 @@
-set (dbow2_ROOR_DIR "${PROJECT_SOURCE_DIR}/orb_slam3/Thirdparty/DBoW2")
+set (dbow2_ROOR_DIR "${PROJECT_SOURCE_DIR}")
+# set (dbow2_ROOR_DIR "${PROJECT_SOURCE_DIR}/orb_slam3/Thirdparty/DBoW2")
+find_package (OpenCV 4.0.0 REQUIRED)
+
 
 set(HDRS_DBOW2
   ${dbow2_ROOR_DIR}/DBoW2/BowVector.h
