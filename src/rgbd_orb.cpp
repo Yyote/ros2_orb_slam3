@@ -55,8 +55,8 @@ RGBDMode::RGBDMode() : Node("mono_node_cpp")
     if (vocFilePath == "file_not_set" || settingsFilePath == "file_not_set")
     {
         pass;
-        vocFilePath = home_dir + "/" + packagePath + "orb_slam3/Vocabulary/ORBvoc.txt.bin";
-        settingsFilePath = home_dir + "/" + packagePath + "orb_slam3/config/Stereo/";
+        vocFilePath = home_dir + "" + packagePath + "orb_slam3/Vocabulary/ORBvoc.txt.bin";
+        settingsFilePath = home_dir + "" + packagePath + "orb_slam3/config/Stereo/";
     }
     
     //* DEBUG print
