@@ -1,3 +1,4 @@
+cmake_minimum_required(VERSION 3.16)
 set(g2o_SOURCE_DIR "${PROJECT_SOURCE_DIR}/orb_slam3/Thirdparty/g2o")
 
 find_package(PkgConfig REQUIRED)
