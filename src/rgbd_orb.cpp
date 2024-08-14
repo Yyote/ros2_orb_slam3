@@ -109,8 +109,8 @@ void RGBDMode::initializeVSLAM(std::string& configString){
     // NOTE if you plan on passing other configuration parameters to ORB SLAM3 Systems class, do it here
     // NOTE you may also use a .yaml file here to set these values
     sensorType = ORB_SLAM3::System::RGBD; 
-    enablePangolinWindow = true; // Shows Pangolin window output
-    enableOpenCVWindow = true; // Shows OpenCV window output
+    enablePangolinWindow = false; // Shows Pangolin window output
+    enableOpenCVWindow = false; // Shows OpenCV window output
     
     pAgent = new ORB_SLAM3::System(vocFilePath, settingsFilePath, sensorType, enablePangolinWindow);
     std::cout << "RGBDMode node initialized" << std::endl; // TODO needs a better message
