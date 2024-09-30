@@ -116,7 +116,7 @@ class RGBDMode : public rclcpp::Node
         bool enableOpenCVWindow = false; // Shows OpenCV window output
 
         std::optional<geometry_msgs::msg::TransformStamped> prev_odom_transform = std::nullopt;
-        std::otpional<nav_msgs::msg::Odometry> prev_odom = std::nullopt;
+        std::optional<nav_msgs::msg::Odometry> prev_odom = std::nullopt;
 
 
         //* ROS callbacks
