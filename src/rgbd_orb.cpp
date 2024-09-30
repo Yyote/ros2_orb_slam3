@@ -264,7 +264,6 @@ void RGBDMode::vslam_timer_cb()
         if (got_odometry_at_least_once == true)
         {
             float dt = (float(odom.header.stamp.sec) + float(odom.header.stamp.nanosec) / 1e9) - (float(previous_odometry.header.stamp.sec) + float(previous_odometry.header.stamp.nanosec) / 1e9);
-            RCLCPP_WARN_STREAM(this->get_logger(), "Odometry delta time = " << dt);
             if (dt <= 0)
             {
                 if (prev_odom_transform && prev_odom)
@@ -279,6 +278,7 @@ void RGBDMode::vslam_timer_cb()
                 }
                 return;
             }
+            RCLCPP_WARN_STREAM(this->get_logger(), "Odometry delta time = " << dt);
 
             odom.twist.twist.linear.x = (odom.pose.pose.position.x - previous_odometry.pose.pose.position.x) / dt;
             odom.twist.twist.linear.y = (odom.pose.pose.position.y - previous_odometry.pose.pose.position.y) / dt;
