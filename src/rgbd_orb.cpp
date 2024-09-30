@@ -197,53 +197,14 @@ void RGBDMode::vslam_timer_cb()
         double dpitch = -M_PI_2;
         double dyaw = M_PI_2;
 
-        // tf2::Quaternion q_camera;
-        // q_camera.setW(q.w());
-        // q_camera.setX(q.x());
-        // q_camera.setY(q.y());
-        // q_camera.setZ(q.z());
-
          // Change axes of rotation
         double roll_, pitch_, yaw_;
         double roll, pitch, yaw;
-        // tf2::Matrix3x3 m(q_camera);
-        // m.getRPY(roll_, pitch_, yaw_);
-
-        // roll = yaw_;
-        // pitch = -roll_;
-        // yaw = -pitch_;
-
-        // // tf2::Quaternion q_correction;
-        // q_camera.setRPY(roll, pitch, yaw);
-        // q_camera.normalize();
 
         odom_transform.transform.translation.x = z;
         odom_transform.transform.translation.y = -x;
         odom_transform.transform.translation.z = -y;
 
-        // view roll = -yaw_real
-        // view pitch = roll_real
-        // view yaw = -pitch_real
-        // odom_transform.transform.rotation.w = q.w();
-        // odom_transform.transform.rotation.x = q.y();
-        // odom_transform.transform.rotation.y = q.z();
-        // odom_transform.transform.rotation.z = q.x();
-
-        // swap z <-> y // yaw_real + roll_real
-
-        // view roll = roll_real
-        // view pitch = -yaw_real
-        // view yaw = -pitch_real
-        // odom_transform.transform.rotation.w = q.w();
-        // odom_transform.transform.rotation.x = q.z();
-        // odom_transform.transform.rotation.y = q.y();
-        // odom_transform.transform.rotation.z = q.x();
-        
-        // swap y <-> x // yaw_real + pitch_real
-
-        // view roll = roll_real
-        // view pitch = -pitch_real
-        // view yaw = -yaw_real
         odom_transform.transform.rotation.w = q.w();
         odom_transform.transform.rotation.x = q.z();
         odom_transform.transform.rotation.y = -q.x();
@@ -277,6 +238,7 @@ void RGBDMode::vslam_timer_cb()
 
                     odom_tf_broadcaster->sendTransform(curr_odom_transform);
                     pubOdometry_->publish(curr_odom);
+                    RCLCPP_ERROR_STREAM(this->get_logger(), "Odometry delta time = " << dt);
                 }
                 return;
             }
