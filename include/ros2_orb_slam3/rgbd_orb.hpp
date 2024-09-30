@@ -115,6 +115,10 @@ class RGBDMode : public rclcpp::Node
         bool enablePangolinWindow = false; // Shows Pangolin window output
         bool enableOpenCVWindow = false; // Shows OpenCV window output
 
+        std::optional<geometry_msgs::msg::TransformStamped> prev_odom_transform = std::nullopt;
+        std::otpional<nav_msgs::msg::Odometry> prev_odom = std::nullopt;
+
+
         //* ROS callbacks
         // void experimentSetting_callback(const std_msgs::msg::String& msg); // Callback to process settings sent over by Python node
         // void Timestep_callback(const std_msgs::msg::Float64& time_msg); // Callback to process the timestep for this image

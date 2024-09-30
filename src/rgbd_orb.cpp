@@ -265,8 +265,18 @@ void RGBDMode::vslam_timer_cb()
         {
             float dt = (float(odom.header.stamp.sec) + float(odom.header.stamp.nanosec) / 1e9) - (float(previous_odometry.header.stamp.sec) + float(previous_odometry.header.stamp.nanosec) / 1e9);
             RCLCPP_WARN_STREAM(this->get_logger(), "Odometry delta time = " << dt);
-            if (dt == 0)
+            if (dt <= 0)
             {
+                if (prev_odom_transform && prev_odom)
+                {
+                    auto curr_odom_transform = prev_odom_transform.value();
+                    auto curr_odom = prev_odom.value();
+                    curr_odom_transform.header.stamp = this->get_clock()->now();
+                    curr_odom.header.stamp = this->get_clock()->now();
+
+                    odom_tf_broadcaster->sendTransform(curr_odom_transform);
+                    pubOdometry_->publish(curr_odom);
+                }
                 return;
             }
 
@@ -302,6 +312,9 @@ void RGBDMode::vslam_timer_cb()
             odom.twist.twist.angular.y = dpitch / dt;
             odom.twist.twist.angular.z = dyaw / dt;
         }
+
+        prev_odom_transform.emplace(odom_transform);
+        prev_odom.emplace(odom);
 
         odom_tf_broadcaster->sendTransform(odom_transform);
         pubOdometry_->publish(odom);
