@@ -227,7 +227,7 @@ void RGBDMode::vslam_timer_cb()
         if (got_odometry_at_least_once == true)
         {
             float dt = (float(odom.header.stamp.sec) + float(odom.header.stamp.nanosec) / 1e9) - (float(previous_odometry.header.stamp.sec) + float(previous_odometry.header.stamp.nanosec) / 1e9);
-            RCLCPP_INF_STREAM(this->get_logger(), "odom_transform.header.sec " << odom_transform.header.sec);
+            RCLCPP_INFO_STREAM(this->get_logger(), "odom_transform.header.sec " << odom_transform.header.sec);
             if (dt <= 0)
             {
                 if (prev_odom_transform && prev_odom)
