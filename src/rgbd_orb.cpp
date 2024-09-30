@@ -175,6 +175,8 @@ void RGBDMode::vslam_timer_cb()
 {
     if (rgb_img_is_fresh == true && depth_img_is_fresh == true && old_timestamp != 0)
     {
+        rgb_img_is_fresh = false;
+        depth_img_is_fresh = false;
         geometry_msgs::msg::TransformStamped odom_transform;
         odom_transform.child_frame_id = odom_link;
         odom_transform.header.frame_id = odom_parent_link;
